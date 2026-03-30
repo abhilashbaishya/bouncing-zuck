@@ -6,7 +6,7 @@
     <title>Bouncing Zuck — Pretext Demo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Inter+Display:wght@500;600&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
     <style>
       * {
         box-sizing: border-box;
@@ -25,46 +25,66 @@
         margin: 0;
         min-height: 100%;
         height: 100%;
-        background: var(--bg);
+        background: #f0f0f0;
         color: var(--ink);
         overscroll-behavior: none;
       }
 
       body {
-        font-family: "DM Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
         cursor: default;
         overflow: hidden;
       }
 
       .page {
-        position: relative;
+        display: flex;
+        flex-direction: column;
         height: 100vh;
+        max-width: 619px;
+        margin: 0 auto;
         overflow: hidden;
         isolation: isolate;
+        background: white;
+        box-shadow: 0 0 40px rgba(12, 20, 37, 0.08);
+        position: relative;
       }
 
-      .hint-pill {
-        position: fixed;
-        top: 16px;
-        left: 50%;
-        transform: translateX(-50%);
-        margin: 0;
-        padding: 10px 16px 11px;
-        border-radius: 999px;
-        background: rgba(12, 20, 37, 0.92);
-        color: rgba(249, 240, 246, 0.96);
-        font: 500 12px/1.2 "DM Sans", sans-serif;
-        letter-spacing: 0.015em;
-        white-space: nowrap;
-        user-select: none;
-        pointer-events: none;
-        z-index: 5;
-        box-shadow: 0 14px 32px rgba(12, 20, 37, 0.16);
-      }
-
+      /* --- Stage: full content area --- */
       .stage {
         position: relative;
-        height: 100%;
+        flex: 1;
+        overflow: hidden;
+        background: white;
+      }
+
+      /* White background covers top portion, dynamically sized */
+      .bg-top {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        background: white;
+        z-index: 0;
+      }
+
+      /* Pink background covers bottom portion */
+      .bg-bottom {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--bg);
+        z-index: 0;
+      }
+
+      /* Divider SVG */
+      .divider-line {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 8px;
+        display: block;
+        z-index: 1;
       }
 
       /* --- Bouncing portrait --- */
@@ -72,44 +92,16 @@
         position: absolute;
         z-index: 3;
         user-select: none;
-        pointer-events: none;
+        pointer-events: auto;
+        cursor: grab;
         filter: drop-shadow(0 8px 24px rgba(12, 20, 37, 0.12));
       }
 
-      .zuck-outline {
-        position: absolute;
-        inset: 8% 5% 0 2%;
+      .zuck-container.dragging {
+        cursor: grabbing;
       }
 
-      .zuck-outline img {
-        width: 100%;
-        height: 100%;
-        display: block;
-      }
-
-      .zuck-face {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-      }
-
-      .zuck-face img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        display: block;
-        mix-blend-mode: multiply;
-      }
-
-      .zuck-eye {
-        position: absolute;
-        width: 22px;
-        height: 22px;
-        left: 15%;
-        top: 37%;
-      }
-
-      .zuck-eye img {
+      .zuck-img {
         width: 100%;
         height: 100%;
         display: block;
@@ -120,26 +112,9 @@
       .line {
         position: absolute;
         white-space: pre;
-        color: var(--ink);
-        font-weight: 400;
         user-select: text;
         cursor: text;
         z-index: 1;
-      }
-
-      .headline {
-        position: absolute;
-        margin: 0;
-        font: inherit;
-        user-select: text;
-        z-index: 1;
-      }
-
-      .headline-line {
-        position: absolute;
-        white-space: pre;
-        color: var(--ink);
-        cursor: text;
       }
 
       .quote-mark {
@@ -153,26 +128,14 @@
         line-height: 1;
       }
 
-      .section-num {
-        position: absolute;
-        font-family: "DM Sans", sans-serif;
-        font-weight: 400;
-        color: var(--ink);
-        z-index: 1;
-        line-height: 1;
-      }
-
       .footer {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 50px;
+        height: 67px;
+        flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 0 48px;
-        font: 400 10px/14px "DM Sans", sans-serif;
+        font: 400 10px/14px "Inter", sans-serif;
         letter-spacing: 1px;
         text-transform: uppercase;
         color: #8f95a3;
@@ -188,8 +151,11 @@
   </head>
   <body>
     <main class="page">
-      <p class="hint-pill">Zuckerberg bounces like a DVD logo. Text reflows around him in real time.</p>
-      <div id="stage" class="stage"></div>
+      <div id="stage" class="stage">
+        <div id="bg-top" class="bg-top"></div>
+        <div id="bg-bottom" class="bg-bottom"></div>
+        <img id="divider-line" class="divider-line" src="./assets/divider.svg" alt="" />
+      </div>
       <div class="footer">
         <span>privado.ai</span>
         <span class="footer-center">Move Fast &amp; Don't Break Things</span>
