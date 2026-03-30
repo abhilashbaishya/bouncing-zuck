@@ -1,44 +1,40 @@
-import { layoutNextLine, prepareWithSegments, walkLineRanges, type LayoutCursor, type PreparedTextWithSegments } from '@chenglou/pretext'
-import zuckOutlineUrl from './assets/zuck-outline.svg'
-import zuckFaceUrl from './assets/zuck-face-overlay.png'
-import zuckEyeUrl from './assets/zuck-eye.png'
+import { layoutNextLine, prepareWithSegments, type LayoutCursor, type PreparedTextWithSegments } from '@chenglou/pretext'
+import zuckCompositeUrl from './assets/zuck-composite.png'
 
-// --- Design tokens from Figma ---
+// --- Fonts & line heights ---
+const TITLE_FONT = '600 24px "Inter Display", Inter, sans-serif'
+const TITLE_LINE_HEIGHT = 30
+
+const BODY_FONT = '400 14px "Inter", sans-serif'
+const BODY_LINE_HEIGHT = 24
+
 const QUOTE_FONT = '14px "Lora", Georgia, "Times New Roman", serif'
 const QUOTE_LINE_HEIGHT = 19
-const ATTRIBUTION_FONT = '700 14px "DM Sans", "Helvetica Neue", Helvetica, Arial, sans-serif'
-const ATTRIBUTION_LINE_HEIGHT = 20
-const HEADLINE_FONT_FAMILY = '"DM Sans", "Helvetica Neue", Helvetica, Arial, sans-serif'
-const HEADLINE_TEXT = 'The Privacy Engineering Gap'
 
-const QUOTE_1 = `We do not have an adequate level of control and explainability over how our systems use data, and thus we can't confidently make controlled policy changes or external commitments. Yet, this is exactly what regulators expect us to do, increasing our risk of mistakes and misrepresentation.`
-const ATTR_1 = 'Leaked internal document at Meta'
+// --- Content ---
+const TITLE_TEXT = 'The Privacy Engineering Gap'
+const BODY_TEXT = 'Engineering teams are instructed to innovate and release new products at a fast clip. On the other hand, privacy teams must rigorously evaluate every aspect of each upcoming product and feature to ensure compliance with privacy policies. This can lead to a disconnect between the teams, delay new product releases, and create privacy debt.'
 
-const QUOTE_2 = `Twitter doesn't understand how much data it collects, why it collects it, and how it's supposed to be used.`
-const ATTR_2 = `Peiter "Mudge" Zatko – Former Head of Security at Twitter`
+const QUOTE_1_FULL = `We do not have an adequate level of control and explainability over how our systems use data, and thus we can't confidently make controlled policy changes or external commitments. Yet, this is exactly what regulators expect us to do, increasing our risk of mistakes and misrepresentation. Leaked internal document at Meta`
+const QUOTE_2_FULL = `Twitter doesn't understand how much data it collects, why it collects it, and how it's supposed to be used. Peiter "Mudge" Zatko – Former Head of Security at Twitter`
 
-const BODY_TEXT = QUOTE_1 + ' ' + ATTR_1 + ' ' + QUOTE_2 + ' ' + ATTR_2
-
-const ZUCK_W = 120
-const ZUCK_H = 160
+const ZUCK_W = Math.round(95 * 0.7)  // 67
+const ZUCK_H = Math.round(142 * 0.7) // 99
 const ZUCK_SPEED = 1.8
 
-type PositionedLine = { x: number; y: number; width: number; text: string }
+type PositionedLine = { x: number; y: number; text: string }
 type Rect = { x: number; y: number; width: number; height: number }
 type Interval = { left: number; right: number }
 
 // --- Bounce state ---
-const bounce = {
-  x: 300,
-  y: 100,
-  vx: ZUCK_SPEED,
-  vy: ZUCK_SPEED * 0.75,
-  w: ZUCK_W,
-  h: ZUCK_H,
-}
+const bounce = { x: 300, y: 100, vx: ZUCK_SPEED, vy: ZUCK_SPEED * 0.75, w: ZUCK_W, h: ZUCK_H }
 
-// --- DOM setup ---
+// --- DOM ---
 const stage = document.getElementById('stage') as HTMLDivElement
+const page = document.querySelector('.page') as HTMLElement
+const bgTop = document.getElementById('bg-top') as HTMLDivElement
+const bgBottom = document.getElementById('bg-bottom') as HTMLDivElement
+const dividerLine = document.getElementById('divider-line') as HTMLImageElement
 
 function resolveAssetUrl(url: string): string {
   if (/^(?:[a-z]+:)?\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url
@@ -46,80 +42,84 @@ function resolveAssetUrl(url: string): string {
   return new URL(url, import.meta.url).href
 }
 
-// Build composite portrait element
+// --- Zuck portrait ---
 const zuckContainer = document.createElement('div')
 zuckContainer.className = 'zuck-container'
 zuckContainer.style.width = `${ZUCK_W}px`
 zuckContainer.style.height = `${ZUCK_H}px`
 
-const outlineDiv = document.createElement('div')
-outlineDiv.className = 'zuck-outline'
-const outlineImg = document.createElement('img')
-outlineImg.src = resolveAssetUrl(zuckOutlineUrl)
-outlineImg.alt = ''
-outlineImg.draggable = false
-outlineDiv.appendChild(outlineImg)
+const zuckImg = document.createElement('img')
+zuckImg.className = 'zuck-img'
+zuckImg.src = resolveAssetUrl(zuckCompositeUrl)
+zuckImg.alt = 'Mark Zuckerberg'
+zuckImg.draggable = false
+zuckContainer.appendChild(zuckImg)
+page.appendChild(zuckContainer)
 
-const faceDiv = document.createElement('div')
-faceDiv.className = 'zuck-face'
-const faceImg = document.createElement('img')
-faceImg.src = resolveAssetUrl(zuckFaceUrl)
-faceImg.alt = 'Mark Zuckerberg'
-faceImg.draggable = false
-faceDiv.appendChild(faceImg)
+// --- Drag ---
+let isDragging = false
+let dragOffsetX = 0
+let dragOffsetY = 0
 
-const eyeDiv = document.createElement('div')
-eyeDiv.className = 'zuck-eye'
-const eyeImg = document.createElement('img')
-eyeImg.src = resolveAssetUrl(zuckEyeUrl)
-eyeImg.alt = ''
-eyeImg.draggable = false
-eyeDiv.appendChild(eyeImg)
+zuckContainer.addEventListener('mousedown', (e) => {
+  isDragging = true
+  zuckContainer.classList.add('dragging')
+  dragOffsetX = e.offsetX
+  dragOffsetY = e.offsetY
+  e.preventDefault()
+})
 
-zuckContainer.append(outlineDiv, faceDiv, eyeDiv)
+zuckContainer.addEventListener('touchstart', (e) => {
+  isDragging = true
+  zuckContainer.classList.add('dragging')
+  const touch = e.touches[0]!
+  const rect = zuckContainer.getBoundingClientRect()
+  dragOffsetX = touch.clientX - rect.left
+  dragOffsetY = touch.clientY - rect.top
+  e.preventDefault()
+}, { passive: false })
 
-// Headline
-const headlineEl = document.createElement('h1')
-headlineEl.className = 'headline'
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging) return
+  const pageRect = page.getBoundingClientRect()
+  bounce.x = Math.max(0, Math.min(e.clientX - pageRect.left - dragOffsetX, page.clientWidth - bounce.w))
+  bounce.y = Math.max(0, Math.min(e.clientY - pageRect.top - dragOffsetY, page.clientHeight - bounce.h))
+})
 
-stage.append(headlineEl, zuckContainer)
+window.addEventListener('touchmove', (e) => {
+  if (!isDragging) return
+  const touch = e.touches[0]!
+  const pageRect = page.getBoundingClientRect()
+  bounce.x = Math.max(0, Math.min(touch.clientX - pageRect.left - dragOffsetX, page.clientWidth - bounce.w))
+  bounce.y = Math.max(0, Math.min(touch.clientY - pageRect.top - dragOffsetY, page.clientHeight - bounce.h))
+}, { passive: true })
 
-// --- Pretext caches ---
+window.addEventListener('mouseup', () => {
+  if (!isDragging) return
+  isDragging = false
+  zuckContainer.classList.remove('dragging')
+  bounce.vx = ZUCK_SPEED * (Math.random() > 0.5 ? 1 : -1)
+  bounce.vy = ZUCK_SPEED * 0.75 * (Math.random() > 0.5 ? 1 : -1)
+})
+
+window.addEventListener('touchend', () => {
+  if (!isDragging) return
+  isDragging = false
+  zuckContainer.classList.remove('dragging')
+  bounce.vx = ZUCK_SPEED * (Math.random() > 0.5 ? 1 : -1)
+  bounce.vy = ZUCK_SPEED * 0.75 * (Math.random() > 0.5 ? 1 : -1)
+})
+
+// --- Pretext helpers ---
 const preparedByKey = new Map<string, PreparedTextWithSegments>()
 
 function getPrepared(text: string, font: string): PreparedTextWithSegments {
   const key = `${font}::${text}`
   const cached = preparedByKey.get(key)
   if (cached !== undefined) return cached
-  const prepared = prepareWithSegments(text, font)
-  preparedByKey.set(key, prepared)
-  return prepared
-}
-
-function headlineBreaksInsideWord(prepared: PreparedTextWithSegments, maxWidth: number): boolean {
-  let breaks = false
-  walkLineRanges(prepared, maxWidth, line => {
-    if (line.end.graphemeIndex !== 0) breaks = true
-  })
-  return breaks
-}
-
-function fitHeadlineFontSize(headlineWidth: number, pageWidth: number): number {
-  let low = Math.ceil(Math.max(18, pageWidth * 0.02))
-  let high = Math.floor(Math.min(48, Math.max(24, pageWidth * 0.04)))
-  let best = low
-  while (low <= high) {
-    const size = Math.floor((low + high) / 2)
-    const font = `500 ${size}px ${HEADLINE_FONT_FAMILY}`
-    const p = getPrepared(HEADLINE_TEXT, font)
-    if (!headlineBreaksInsideWord(p, headlineWidth)) {
-      best = size
-      low = size + 1
-    } else {
-      high = size - 1
-    }
-  }
-  return best
+  const p = prepareWithSegments(text, font)
+  preparedByKey.set(key, p)
+  return p
 }
 
 // --- Obstacle carving ---
@@ -135,9 +135,9 @@ function carveSlots(region: Interval, blocked: Interval[]): Interval[] {
   return slots
 }
 
-function getRectIntervalForBand(rect: Rect, bandTop: number, bandBottom: number, hPad: number, vPad: number): Interval | null {
-  if (bandBottom <= rect.y - vPad || bandTop >= rect.y + rect.height + vPad) return null
-  return { left: rect.x - hPad, right: rect.x + rect.width + hPad }
+function getBlockedInterval(obs: Rect, bandTop: number, bandBottom: number, hPad: number, vPad: number): Interval | null {
+  if (bandBottom <= obs.y - vPad || bandTop >= obs.y + obs.height + vPad) return null
+  return { left: obs.x - hPad, right: obs.x + obs.width + hPad }
 }
 
 function layoutColumn(
@@ -148,20 +148,17 @@ function layoutColumn(
   obstacles: Rect[],
   hPad: number,
   vPad: number,
-): { lines: PositionedLine[]; cursor: LayoutCursor } {
+): { lines: PositionedLine[]; cursor: LayoutCursor; bottom: number } {
   let cursor: LayoutCursor = startCursor
   let lineTop = region.y
   const lines: PositionedLine[] = []
 
   while (lineTop + lineHeight <= region.y + region.height) {
-    const bandTop = lineTop
-    const bandBottom = lineTop + lineHeight
     const blocked: Interval[] = []
     for (const obs of obstacles) {
-      const interval = getRectIntervalForBand(obs, bandTop, bandBottom, hPad, vPad)
-      if (interval !== null) blocked.push(interval)
+      const iv = getBlockedInterval(obs, lineTop, lineTop + lineHeight, hPad, vPad)
+      if (iv !== null) blocked.push(iv)
     }
-
     const slots = carveSlots({ left: region.x, right: region.x + region.width }, blocked)
     if (slots.length === 0) { lineTop += lineHeight; continue }
 
@@ -169,34 +166,31 @@ function layoutColumn(
     for (let i = 1; i < slots.length; i++) {
       if (slots[i]!.right - slots[i]!.left > slot.right - slot.left) slot = slots[i]!
     }
-
     const width = slot.right - slot.left
     if (width < 40) { lineTop += lineHeight; continue }
 
     const line = layoutNextLine(prepared, cursor, width)
     if (line === null) break
 
-    lines.push({
-      x: Math.round(slot.left),
-      y: Math.round(lineTop),
-      width: line.width,
-      text: line.text,
-    })
+    lines.push({ x: Math.round(slot.left), y: Math.round(lineTop), text: line.text })
     cursor = line.end
     lineTop += lineHeight
   }
-  return { lines, cursor }
+  const bottom = lines.length > 0 ? lines[lines.length - 1]!.y + lineHeight : region.y
+  return { lines, cursor, bottom }
 }
 
 // --- DOM pools ---
-let headlineLineEls: HTMLSpanElement[] = []
+let titleLineEls: HTMLSpanElement[] = []
 let bodyLineEls: HTMLSpanElement[] = []
+let quote1LineEls: HTMLSpanElement[] = []
+let quote2LineEls: HTMLSpanElement[] = []
 let quoteMarkEls: HTMLSpanElement[] = []
 
-function syncPool(pool: HTMLSpanElement[], length: number, className: string): HTMLSpanElement[] {
+function syncPool(pool: HTMLSpanElement[], length: number): HTMLSpanElement[] {
   while (pool.length < length) {
     const el = document.createElement('span')
-    el.className = className
+    el.className = 'line'
     stage.appendChild(el)
     pool.push(el)
   }
@@ -204,15 +198,31 @@ function syncPool(pool: HTMLSpanElement[], length: number, className: string): H
   return pool
 }
 
+function applyLines(pool: HTMLSpanElement[], lines: PositionedLine[], font: string, lineHeight: number, color: string) {
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]!
+    const el = pool[i]!
+    el.textContent = l.text
+    el.style.left = `${l.x}px`
+    el.style.top = `${l.y}px`
+    el.style.font = font
+    el.style.lineHeight = `${lineHeight}px`
+    el.style.color = color
+  }
+}
+
 // --- Wait for fonts ---
 await document.fonts.ready
-const preparedBody = getPrepared(BODY_TEXT, QUOTE_FONT)
+const preparedTitle = getPrepared(TITLE_TEXT, TITLE_FONT)
+const preparedBody = getPrepared(BODY_TEXT, BODY_FONT)
+const preparedQ1 = getPrepared(QUOTE_1_FULL, QUOTE_FONT)
+const preparedQ2 = getPrepared(QUOTE_2_FULL, QUOTE_FONT)
 
-// --- Update bounce ---
+// --- Bounce ---
 function updateBounce(pageWidth: number, pageHeight: number): void {
+  if (isDragging) return
   bounce.x += bounce.vx
   bounce.y += bounce.vy
-
   if (bounce.x <= 0) { bounce.x = 0; bounce.vx = Math.abs(bounce.vx) }
   if (bounce.y <= 0) { bounce.y = 0; bounce.vy = Math.abs(bounce.vy) }
   if (bounce.x + bounce.w >= pageWidth) { bounce.x = pageWidth - bounce.w; bounce.vx = -Math.abs(bounce.vx) }
@@ -221,94 +231,81 @@ function updateBounce(pageWidth: number, pageHeight: number): void {
 
 // --- Render ---
 function render(): void {
-  const root = document.documentElement
-  const pageWidth = root.clientWidth
-  const pageHeight = root.clientHeight
+  const pageWidth = page.clientWidth
+  const pageHeight = page.clientHeight
+  const stageHeight = stage.clientHeight
 
   updateBounce(pageWidth, pageHeight)
 
-  // Position Zuck
   zuckContainer.style.left = `${Math.round(bounce.x)}px`
   zuckContainer.style.top = `${Math.round(bounce.y)}px`
   zuckContainer.style.transform = 'rotate(-1.19deg)'
 
-  const zuckRect: Rect = { x: bounce.x, y: bounce.y, width: bounce.w, height: bounce.h }
+  // Zuck rect in stage coordinates
+  const pageRect = page.getBoundingClientRect()
+  const stageRect = stage.getBoundingClientRect()
+  const stageOffsetTop = stageRect.top - pageRect.top
+  const zuckInStage: Rect = { x: bounce.x, y: bounce.y - stageOffsetTop, width: bounce.w, height: bounce.h }
+  const obstacles = [zuckInStage]
 
-  const gutter = Math.round(Math.max(40, pageWidth * 0.06))
-  const isNarrow = pageWidth < 700
+  const gutter = 75
+  const textWidth = Math.min(380, pageWidth - gutter * 2)
+  const hPad = 12
+  const vPad = 6
 
-  // Headline
-  const headlineTop = Math.round(Math.max(28, pageWidth * 0.03, 56))
-  const headlineWidth = isNarrow ? pageWidth - gutter * 2 : Math.min(380, pageWidth - gutter * 2)
-  const headlineFontSize = fitHeadlineFontSize(headlineWidth, pageWidth)
-  const headlineLineHeight = Math.round(headlineFontSize * 1.25)
-  const headlineFont = `500 ${headlineFontSize}px ${HEADLINE_FONT_FAMILY}`
+  // --- Title ---
+  const titleRegion: Rect = { x: gutter, y: 40, width: textWidth, height: TITLE_LINE_HEIGHT * 3 }
+  const titleResult = layoutColumn(preparedTitle, { segmentIndex: 0, graphemeIndex: 0 }, titleRegion, TITLE_LINE_HEIGHT, obstacles, hPad, vPad)
+  titleLineEls = syncPool(titleLineEls, titleResult.lines.length)
+  applyLines(titleLineEls, titleResult.lines, TITLE_FONT, TITLE_LINE_HEIGHT, 'var(--ink)')
 
-  const headlinePrepared = getPrepared(HEADLINE_TEXT, headlineFont)
-  const headlineRegion: Rect = { x: gutter, y: headlineTop, width: headlineWidth, height: headlineLineHeight * 2 }
-  const headlineResult = layoutColumn(headlinePrepared, { segmentIndex: 0, graphemeIndex: 0 }, headlineRegion, headlineLineHeight, [zuckRect], Math.round(QUOTE_LINE_HEIGHT * 0.8), Math.round(QUOTE_LINE_HEIGHT * 0.3))
+  // --- Body paragraph ---
+  const bodyTop = titleResult.bottom + 10
+  const bodyRegion: Rect = { x: gutter, y: bodyTop, width: textWidth, height: BODY_LINE_HEIGHT * 10 }
+  const bodyResult = layoutColumn(preparedBody, { segmentIndex: 0, graphemeIndex: 0 }, bodyRegion, BODY_LINE_HEIGHT, obstacles, hPad, vPad)
+  bodyLineEls = syncPool(bodyLineEls, bodyResult.lines.length)
+  applyLines(bodyLineEls, bodyResult.lines, BODY_FONT, BODY_LINE_HEIGHT, 'var(--ink-muted)')
 
-  headlineEl.style.left = '0px'
-  headlineEl.style.top = '0px'
-  headlineEl.style.width = `${pageWidth}px`
-  headlineEl.style.height = `${pageHeight}px`
+  // --- Divider position ---
+  const dividerY = bodyResult.bottom + 20
+  bgTop.style.height = `${dividerY}px`
+  bgBottom.style.height = `${stageHeight - dividerY - 8}px`
+  dividerLine.style.top = `${dividerY}px`
 
-  headlineLineEls = syncPool(headlineLineEls, headlineResult.lines.length, 'headline-line')
-  for (let i = 0; i < headlineResult.lines.length; i++) {
-    const line = headlineResult.lines[i]!
-    const el = headlineLineEls[i]!
-    el.textContent = line.text
-    el.style.left = `${line.x}px`
-    el.style.top = `${line.y}px`
-    el.style.font = headlineFont
-    el.style.lineHeight = `${headlineLineHeight}px`
-    headlineEl.appendChild(el)
+  // --- Quotes ---
+  const quoteTextWidth = Math.min(356, pageWidth - gutter * 2)
+  const qHPad = QUOTE_LINE_HEIGHT
+  const qVPad = Math.round(QUOTE_LINE_HEIGHT * 0.4)
+
+  const qm1Y = dividerY + 28
+  const q1Top = qm1Y + 26
+  const q1Region: Rect = { x: gutter, y: q1Top, width: quoteTextWidth, height: stageHeight * 0.45 }
+  const q1Result = layoutColumn(preparedQ1, { segmentIndex: 0, graphemeIndex: 0 }, q1Region, QUOTE_LINE_HEIGHT, obstacles, qHPad, qVPad)
+  quote1LineEls = syncPool(quote1LineEls, q1Result.lines.length)
+  applyLines(quote1LineEls, q1Result.lines, QUOTE_FONT, QUOTE_LINE_HEIGHT, 'var(--ink)')
+
+  const qm2Y = q1Result.bottom + 24
+  const q2Top = qm2Y + 26
+  const q2Height = Math.max(0, stageHeight - q2Top - 16)
+  const q2Region: Rect = { x: gutter, y: q2Top, width: quoteTextWidth, height: q2Height }
+  const q2Result = layoutColumn(preparedQ2, { segmentIndex: 0, graphemeIndex: 0 }, q2Region, QUOTE_LINE_HEIGHT, obstacles, qHPad, qVPad)
+  quote2LineEls = syncPool(quote2LineEls, q2Result.lines.length)
+  applyLines(quote2LineEls, q2Result.lines, QUOTE_FONT, QUOTE_LINE_HEIGHT, 'var(--ink)')
+
+  // --- Quote marks ---
+  const qms = [{ x: gutter, y: qm1Y }, { x: gutter, y: qm2Y }]
+  while (quoteMarkEls.length < qms.length) {
+    const el = document.createElement('span')
+    el.className = 'quote-mark'
+    stage.appendChild(el)
+    quoteMarkEls.push(el)
   }
-
-  const headlineBottom = headlineResult.lines.length === 0
-    ? headlineTop
-    : Math.max(...headlineResult.lines.map(l => l.y + headlineLineHeight))
-
-  // Quote mark 1
-  const quoteTop1 = headlineBottom + Math.round(gutter * 0.6)
-  // Body text
-  const bodyTop = quoteTop1 + 30
-  const bodyWidth = isNarrow ? pageWidth - gutter * 2 : Math.min(356, pageWidth - gutter * 2)
-
-  const hPad = Math.round(QUOTE_LINE_HEIGHT * 1.0)
-  const vPad = Math.round(QUOTE_LINE_HEIGHT * 0.4)
-
-  const bodyRegion: Rect = {
-    x: gutter,
-    y: bodyTop,
-    width: bodyWidth,
-    height: Math.max(0, pageHeight - bodyTop - gutter),
-  }
-  const bodyResult = layoutColumn(preparedBody, { segmentIndex: 0, graphemeIndex: 0 }, bodyRegion, QUOTE_LINE_HEIGHT, [zuckRect], hPad, vPad)
-
-  bodyLineEls = syncPool(bodyLineEls, bodyResult.lines.length, 'line')
-  for (let i = 0; i < bodyResult.lines.length; i++) {
-    const line = bodyResult.lines[i]!
-    const el = bodyLineEls[i]!
-    el.textContent = line.text
-    el.style.left = `${line.x}px`
-    el.style.top = `${line.y}px`
-    el.style.font = QUOTE_FONT
-    el.style.lineHeight = `${QUOTE_LINE_HEIGHT}px`
-    el.style.color = 'var(--ink)'
-  }
-
-  // Quote marks
-  const quoteMarks = [
-    { x: gutter, y: quoteTop1 },
-  ]
-  quoteMarkEls = syncPool(quoteMarkEls, quoteMarks.length, 'quote-mark')
-  for (let i = 0; i < quoteMarks.length; i++) {
-    const qm = quoteMarks[i]!
+  while (quoteMarkEls.length > qms.length) quoteMarkEls.pop()!.remove()
+  for (let i = 0; i < qms.length; i++) {
     const el = quoteMarkEls[i]!
     el.textContent = '\u201C'
-    el.style.left = `${qm.x}px`
-    el.style.top = `${qm.y}px`
+    el.style.left = `${qms[i]!.x}px`
+    el.style.top = `${qms[i]!.y}px`
     el.style.fontSize = '32px'
   }
 
