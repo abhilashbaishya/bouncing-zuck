@@ -162,9 +162,14 @@ function layoutColumn(
     const slots = carveSlots({ left: region.x, right: region.x + region.width }, blocked)
     if (slots.length === 0) { lineTop += lineHeight; continue }
 
+    // Use leftmost slot (editorial/magazine float behaviour).
+    // Fall back to widest if leftmost is too narrow to fit a word.
+    const MIN_SLOT = 80
     let slot = slots[0]!
-    for (let i = 1; i < slots.length; i++) {
-      if (slots[i]!.right - slots[i]!.left > slot.right - slot.left) slot = slots[i]!
+    if (slot.right - slot.left < MIN_SLOT) {
+      for (let i = 1; i < slots.length; i++) {
+        if (slots[i]!.right - slots[i]!.left >= MIN_SLOT) { slot = slots[i]!; break }
+      }
     }
     const width = slot.right - slot.left
     if (width < 40) { lineTop += lineHeight; continue }
@@ -250,8 +255,8 @@ function render(): void {
 
   const gutter = 75
   const textWidth = Math.min(380, pageWidth - gutter * 2)
-  const hPad = 12
-  const vPad = 6
+  const hPad = 4
+  const vPad = 2
 
   // --- Title ---
   const titleRegion: Rect = { x: gutter, y: 40, width: textWidth, height: TITLE_LINE_HEIGHT * 3 }
@@ -274,8 +279,8 @@ function render(): void {
 
   // --- Quotes ---
   const quoteTextWidth = Math.min(356, pageWidth - gutter * 2)
-  const qHPad = QUOTE_LINE_HEIGHT
-  const qVPad = Math.round(QUOTE_LINE_HEIGHT * 0.4)
+  const qHPad = 4
+  const qVPad = 2
 
   const qm1Y = dividerY + 28
   const q1Top = qm1Y + 26
