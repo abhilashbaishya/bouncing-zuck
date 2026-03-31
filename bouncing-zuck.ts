@@ -4,14 +4,14 @@ import zuckCompositeUrl from './assets/zuck-composite.png'
 // --- Responsive font sizes (computed once at startup from actual viewport) ---
 // Use width < 500 — phones are narrow, more reliable than height on iOS
 const _compact = window.innerWidth < 500
-const TITLE_FONT = `600 ${_compact ? 17 : 24}px "Inter Display", Inter, sans-serif`
-const TITLE_LINE_HEIGHT = _compact ? 22 : 30
+const TITLE_FONT = `${_compact ? 18 : 24}px "Hedvig Letters Sans", sans-serif`
+const TITLE_LINE_HEIGHT = _compact ? 26 : 34
 
-const BODY_FONT = `400 ${_compact ? 12 : 14}px "Inter", sans-serif`
-const BODY_LINE_HEIGHT = _compact ? 17 : 24
+const BODY_FONT = `${_compact ? 13 : 14}px "Hedvig Letters Sans", sans-serif`
+const BODY_LINE_HEIGHT = _compact ? 20 : 24
 
-const QUOTE_FONT = `${_compact ? 12 : 14}px "Lora", Georgia, "Times New Roman", serif`
-const QUOTE_LINE_HEIGHT = _compact ? 16 : 19
+const QUOTE_FONT = `${_compact ? 13 : 14}px "Zodiak", Georgia, serif`
+const QUOTE_LINE_HEIGHT = _compact ? 20 : 22
 
 // --- Content ---
 const TITLE_TEXT = 'The Privacy Engineering Gap'
@@ -218,8 +218,16 @@ function applyLines(pool: HTMLSpanElement[], lines: PositionedLine[], font: stri
   }
 }
 
-// --- Wait for fonts ---
-await document.fonts.ready
+// --- Wait for fonts (explicitly load each to ensure canvas measurement is accurate) ---
+// Load Zodiak via FontFace API so we control the URL resolution
+const zodiak = new FontFace('Zodiak', `url(${new URL('./assets/Zodiak-Variable.woff', import.meta.url).href}) format("woff")`, { weight: '100 900', style: 'normal' })
+document.fonts.add(zodiak)
+await Promise.allSettled([
+  zodiak.load(),
+  document.fonts.ready,
+  document.fonts.load(TITLE_FONT),
+  document.fonts.load(BODY_FONT),
+])
 const preparedTitle = getPrepared(TITLE_TEXT, TITLE_FONT)
 const preparedBody = getPrepared(BODY_TEXT, BODY_FONT)
 const preparedQ1 = getPrepared(QUOTE_1_FULL, QUOTE_FONT)
@@ -255,44 +263,46 @@ function render(): void {
   const zuckInStage: Rect = { x: bounce.x, y: bounce.y - stageOffsetTop, width: bounce.w, height: bounce.h }
   const obstacles = [zuckInStage]
 
-  const sp = _compact ? 0.6 : 1  // spacing scale factor for compact screens
-  const gutter = Math.round(Math.max(16, pageWidth * 0.12))
+  // gutter: generous on desktop, tight on mobile so text has room
+  const gutter = _compact
+    ? Math.round(Math.max(16, pageWidth * 0.055))
+    : Math.round(Math.max(48, pageWidth * 0.12))
   const textWidth = pageWidth - gutter * 2
-  const hPad = 4
-  const vPad = 2
+  const hPad = 5
+  const vPad = 3
 
   // --- Title ---
-  const titleRegion: Rect = { x: gutter, y: Math.round(20 * sp), width: textWidth, height: TITLE_LINE_HEIGHT * 4 }
+  const titleRegion: Rect = { x: gutter, y: _compact ? 24 : 44, width: textWidth, height: TITLE_LINE_HEIGHT * 4 }
   const titleResult = layoutColumn(preparedTitle, { segmentIndex: 0, graphemeIndex: 0 }, titleRegion, TITLE_LINE_HEIGHT, obstacles, hPad, vPad)
   titleLineEls = syncPool(titleLineEls, titleResult.lines.length)
   applyLines(titleLineEls, titleResult.lines, TITLE_FONT, TITLE_LINE_HEIGHT, 'var(--ink)')
 
   // --- Body paragraph ---
-  const bodyTop = titleResult.bottom + Math.round(6 * sp)
-  const bodyRegion: Rect = { x: gutter, y: bodyTop, width: textWidth, height: BODY_LINE_HEIGHT * (_compact ? 10 : 14) }
+  const bodyTop = titleResult.bottom + (_compact ? 10 : 16)
+  const bodyRegion: Rect = { x: gutter, y: bodyTop, width: textWidth, height: BODY_LINE_HEIGHT * (_compact ? 12 : 14) }
   const bodyResult = layoutColumn(preparedBody, { segmentIndex: 0, graphemeIndex: 0 }, bodyRegion, BODY_LINE_HEIGHT, obstacles, hPad, vPad)
   bodyLineEls = syncPool(bodyLineEls, bodyResult.lines.length)
   applyLines(bodyLineEls, bodyResult.lines, BODY_FONT, BODY_LINE_HEIGHT, 'var(--ink-muted)')
 
   // --- Divider position ---
-  const dividerY = bodyResult.bottom + Math.round(12 * sp)
+  const dividerY = bodyResult.bottom + (_compact ? 16 : 28)
   bgTop.style.height = `${dividerY}px`
   bgBottom.style.height = `${stageHeight - dividerY - 8}px`
   dividerLine.style.top = `${dividerY}px`
 
   // --- Quotes ---
-  const qHPad = 4
-  const qVPad = 2
+  const qHPad = 5
+  const qVPad = 3
 
-  const qm1Y = dividerY + Math.round(16 * sp)
-  const q1Top = qm1Y + Math.round(20 * sp)
+  const qm1Y = dividerY + (_compact ? 18 : 28)
+  const q1Top = qm1Y + (_compact ? 20 : 26)
   const q1Region: Rect = { x: gutter, y: q1Top, width: textWidth, height: stageHeight * 0.5 }
   const q1Result = layoutColumn(preparedQ1, { segmentIndex: 0, graphemeIndex: 0 }, q1Region, QUOTE_LINE_HEIGHT, obstacles, qHPad, qVPad)
   quote1LineEls = syncPool(quote1LineEls, q1Result.lines.length)
   applyLines(quote1LineEls, q1Result.lines, QUOTE_FONT, QUOTE_LINE_HEIGHT, 'var(--ink)')
 
-  const qm2Y = q1Result.bottom + Math.round(16 * sp)
-  const q2Top = qm2Y + Math.round(20 * sp)
+  const qm2Y = q1Result.bottom + (_compact ? 20 : 32)
+  const q2Top = qm2Y + (_compact ? 20 : 26)
   const q2Height = Math.max(0, stageHeight - q2Top - 8)
   const q2Region: Rect = { x: gutter, y: q2Top, width: textWidth, height: q2Height }
   const q2Result = layoutColumn(preparedQ2, { segmentIndex: 0, graphemeIndex: 0 }, q2Region, QUOTE_LINE_HEIGHT, obstacles, qHPad, qVPad)
