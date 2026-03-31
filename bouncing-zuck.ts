@@ -4,8 +4,8 @@ import zuckCompositeUrl from './assets/zuck-composite.png'
 // --- Responsive font sizes (computed once at startup from actual viewport) ---
 // Use width < 500 — phones are narrow, more reliable than height on iOS
 const _compact = window.innerWidth < 500
-const TITLE_FONT = `${_compact ? 18 : 24}px "Hedvig Letters Sans", sans-serif`
-const TITLE_LINE_HEIGHT = _compact ? 26 : 34
+const TITLE_FONT = `${_compact ? 36 : 64}px "Hedvig Letters Sans", sans-serif`
+const TITLE_LINE_HEIGHT = _compact ? Math.round(36 * 0.96) : Math.round(64 * 0.96)
 
 const BODY_FONT = `${_compact ? 13 : 14}px "Hedvig Letters Sans", sans-serif`
 const BODY_LINE_HEIGHT = _compact ? 20 : 24
@@ -164,23 +164,18 @@ function layoutColumn(
     const slots = carveSlots({ left: region.x, right: region.x + region.width }, blocked)
     if (slots.length === 0) { lineTop += lineHeight; continue }
 
-    // Use leftmost slot (editorial/magazine float behaviour).
-    // Fall back to widest if leftmost is too narrow to fit a word.
-    const MIN_SLOT = 80
-    let slot = slots[0]!
-    if (slot.right - slot.left < MIN_SLOT) {
-      for (let i = 1; i < slots.length; i++) {
-        if (slots[i]!.right - slots[i]!.left >= MIN_SLOT) { slot = slots[i]!; break }
-      }
+    // Fill ALL slots left-to-right on this line — text appears on both sides of Zuck
+    let placedAny = false
+    for (const slot of slots) {
+      const width = slot.right - slot.left
+      if (width < 40) continue
+      const line = layoutNextLine(prepared, cursor, width)
+      if (line === null) continue // word too wide for this slot, try next
+      lines.push({ x: Math.round(slot.left), y: Math.round(lineTop), text: line.text })
+      cursor = line.end
+      placedAny = true
     }
-    const width = slot.right - slot.left
-    if (width < 40) { lineTop += lineHeight; continue }
-
-    const line = layoutNextLine(prepared, cursor, width)
-    if (line === null) break
-
-    lines.push({ x: Math.round(slot.left), y: Math.round(lineTop), text: line.text })
-    cursor = line.end
+    if (!placedAny) break
     lineTop += lineHeight
   }
   const bottom = lines.length > 0 ? lines[lines.length - 1]!.y + lineHeight : region.y
@@ -272,8 +267,10 @@ function render(): void {
   const vPad = 3
 
   // --- Title ---
-  const titleRegion: Rect = { x: gutter, y: _compact ? 24 : 44, width: textWidth, height: TITLE_LINE_HEIGHT * 4 }
-  const titleResult = layoutColumn(preparedTitle, { segmentIndex: 0, graphemeIndex: 0 }, titleRegion, TITLE_LINE_HEIGHT, obstacles, hPad, vPad)
+  // Display headline: no obstacle avoidance — 64px words are too wide to flow beside Zuck
+  const titleTextWidth = pageWidth - gutter - 8
+  const titleRegion: Rect = { x: gutter, y: _compact ? 16 : 32, width: titleTextWidth, height: TITLE_LINE_HEIGHT * 4 }
+  const titleResult = layoutColumn(preparedTitle, { segmentIndex: 0, graphemeIndex: 0 }, titleRegion, TITLE_LINE_HEIGHT, [], hPad, vPad)
   titleLineEls = syncPool(titleLineEls, titleResult.lines.length)
   applyLines(titleLineEls, titleResult.lines, TITLE_FONT, TITLE_LINE_HEIGHT, 'var(--ink)')
 
