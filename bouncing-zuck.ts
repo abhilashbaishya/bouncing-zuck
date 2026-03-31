@@ -2,15 +2,16 @@ import { layoutNextLine, prepareWithSegments, type LayoutCursor, type PreparedTe
 import zuckCompositeUrl from './assets/zuck-composite.png'
 
 // --- Responsive font sizes (computed once at startup from actual viewport) ---
-const _compact = window.innerHeight < 700
-const TITLE_FONT = `600 ${_compact ? 18 : 24}px "Inter Display", Inter, sans-serif`
-const TITLE_LINE_HEIGHT = _compact ? 24 : 30
+// Use width < 500 — phones are narrow, more reliable than height on iOS
+const _compact = window.innerWidth < 500
+const TITLE_FONT = `600 ${_compact ? 17 : 24}px "Inter Display", Inter, sans-serif`
+const TITLE_LINE_HEIGHT = _compact ? 22 : 30
 
-const BODY_FONT = `400 ${_compact ? 13 : 14}px "Inter", sans-serif`
-const BODY_LINE_HEIGHT = _compact ? 16 : 24
+const BODY_FONT = `400 ${_compact ? 12 : 14}px "Inter", sans-serif`
+const BODY_LINE_HEIGHT = _compact ? 17 : 24
 
 const QUOTE_FONT = `${_compact ? 12 : 14}px "Lora", Georgia, "Times New Roman", serif`
-const QUOTE_LINE_HEIGHT = _compact ? 15 : 19
+const QUOTE_LINE_HEIGHT = _compact ? 16 : 19
 
 // --- Content ---
 const TITLE_TEXT = 'The Privacy Engineering Gap'
@@ -19,8 +20,8 @@ const BODY_TEXT = 'Engineering teams are instructed to innovate and release new 
 const QUOTE_1_FULL = `We do not have an adequate level of control and explainability over how our systems use data, and thus we can't confidently make controlled policy changes or external commitments. Yet, this is exactly what regulators expect us to do, increasing our risk of mistakes and misrepresentation. Leaked internal document at Meta`
 const QUOTE_2_FULL = `Twitter doesn't understand how much data it collects, why it collects it, and how it's supposed to be used. Peiter "Mudge" Zatko – Former Head of Security at Twitter`
 
-const ZUCK_W = Math.round(95 * 0.7)  // 67
-const ZUCK_H = Math.round(142 * 0.7) // 99
+const ZUCK_W = _compact ? 48 : Math.round(95 * 0.7)  // 48 on mobile, 67 on desktop
+const ZUCK_H = _compact ? 71 : Math.round(142 * 0.7) // 71 on mobile, 99 on desktop
 const ZUCK_SPEED = 1.8
 
 type PositionedLine = { x: number; y: number; text: string }
@@ -268,7 +269,7 @@ function render(): void {
 
   // --- Body paragraph ---
   const bodyTop = titleResult.bottom + Math.round(6 * sp)
-  const bodyRegion: Rect = { x: gutter, y: bodyTop, width: textWidth, height: BODY_LINE_HEIGHT * 14 }
+  const bodyRegion: Rect = { x: gutter, y: bodyTop, width: textWidth, height: BODY_LINE_HEIGHT * (_compact ? 10 : 14) }
   const bodyResult = layoutColumn(preparedBody, { segmentIndex: 0, graphemeIndex: 0 }, bodyRegion, BODY_LINE_HEIGHT, obstacles, hPad, vPad)
   bodyLineEls = syncPool(bodyLineEls, bodyResult.lines.length)
   applyLines(bodyLineEls, bodyResult.lines, BODY_FONT, BODY_LINE_HEIGHT, 'var(--ink-muted)')
