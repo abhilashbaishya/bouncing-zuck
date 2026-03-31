@@ -270,7 +270,7 @@ function render(): void {
   // Display headline: no obstacle avoidance — 64px words are too wide to flow beside Zuck
   const titleTextWidth = pageWidth - gutter - 8
   const titleRegion: Rect = { x: gutter, y: _compact ? 16 : 32, width: titleTextWidth, height: TITLE_LINE_HEIGHT * 4 }
-  const titleResult = layoutColumn(preparedTitle, { segmentIndex: 0, graphemeIndex: 0 }, titleRegion, TITLE_LINE_HEIGHT, [], hPad, vPad)
+  const titleResult = layoutColumn(preparedTitle, { segmentIndex: 0, graphemeIndex: 0 }, titleRegion, TITLE_LINE_HEIGHT, obstacles, hPad, vPad)
   titleLineEls = syncPool(titleLineEls, titleResult.lines.length)
   applyLines(titleLineEls, titleResult.lines, TITLE_FONT, TITLE_LINE_HEIGHT, 'var(--ink)')
 
