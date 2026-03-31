@@ -1,15 +1,16 @@
 import { layoutNextLine, prepareWithSegments, type LayoutCursor, type PreparedTextWithSegments } from '@chenglou/pretext'
 import zuckCompositeUrl from './assets/zuck-composite.png'
 
-// --- Fonts & line heights ---
-const TITLE_FONT = '600 24px "Inter Display", Inter, sans-serif'
-const TITLE_LINE_HEIGHT = 30
+// --- Responsive font sizes (computed once at startup from actual viewport) ---
+const _compact = window.innerHeight < 700
+const TITLE_FONT = `600 ${_compact ? 18 : 24}px "Inter Display", Inter, sans-serif`
+const TITLE_LINE_HEIGHT = _compact ? 24 : 30
 
-const BODY_FONT = '400 14px "Inter", sans-serif'
-const BODY_LINE_HEIGHT = 24
+const BODY_FONT = `400 ${_compact ? 13 : 14}px "Inter", sans-serif`
+const BODY_LINE_HEIGHT = _compact ? 16 : 24
 
-const QUOTE_FONT = '14px "Lora", Georgia, "Times New Roman", serif'
-const QUOTE_LINE_HEIGHT = 19
+const QUOTE_FONT = `${_compact ? 12 : 14}px "Lora", Georgia, "Times New Roman", serif`
+const QUOTE_LINE_HEIGHT = _compact ? 15 : 19
 
 // --- Content ---
 const TITLE_TEXT = 'The Privacy Engineering Gap'
@@ -253,46 +254,46 @@ function render(): void {
   const zuckInStage: Rect = { x: bounce.x, y: bounce.y - stageOffsetTop, width: bounce.w, height: bounce.h }
   const obstacles = [zuckInStage]
 
-  const gutter = 75
-  const textWidth = Math.min(380, pageWidth - gutter * 2)
+  const sp = _compact ? 0.6 : 1  // spacing scale factor for compact screens
+  const gutter = Math.round(Math.max(16, pageWidth * 0.12))
+  const textWidth = pageWidth - gutter * 2
   const hPad = 4
   const vPad = 2
 
   // --- Title ---
-  const titleRegion: Rect = { x: gutter, y: 40, width: textWidth, height: TITLE_LINE_HEIGHT * 3 }
+  const titleRegion: Rect = { x: gutter, y: Math.round(20 * sp), width: textWidth, height: TITLE_LINE_HEIGHT * 4 }
   const titleResult = layoutColumn(preparedTitle, { segmentIndex: 0, graphemeIndex: 0 }, titleRegion, TITLE_LINE_HEIGHT, obstacles, hPad, vPad)
   titleLineEls = syncPool(titleLineEls, titleResult.lines.length)
   applyLines(titleLineEls, titleResult.lines, TITLE_FONT, TITLE_LINE_HEIGHT, 'var(--ink)')
 
   // --- Body paragraph ---
-  const bodyTop = titleResult.bottom + 10
-  const bodyRegion: Rect = { x: gutter, y: bodyTop, width: textWidth, height: BODY_LINE_HEIGHT * 10 }
+  const bodyTop = titleResult.bottom + Math.round(6 * sp)
+  const bodyRegion: Rect = { x: gutter, y: bodyTop, width: textWidth, height: BODY_LINE_HEIGHT * 14 }
   const bodyResult = layoutColumn(preparedBody, { segmentIndex: 0, graphemeIndex: 0 }, bodyRegion, BODY_LINE_HEIGHT, obstacles, hPad, vPad)
   bodyLineEls = syncPool(bodyLineEls, bodyResult.lines.length)
   applyLines(bodyLineEls, bodyResult.lines, BODY_FONT, BODY_LINE_HEIGHT, 'var(--ink-muted)')
 
   // --- Divider position ---
-  const dividerY = bodyResult.bottom + 20
+  const dividerY = bodyResult.bottom + Math.round(12 * sp)
   bgTop.style.height = `${dividerY}px`
   bgBottom.style.height = `${stageHeight - dividerY - 8}px`
   dividerLine.style.top = `${dividerY}px`
 
   // --- Quotes ---
-  const quoteTextWidth = Math.min(356, pageWidth - gutter * 2)
   const qHPad = 4
   const qVPad = 2
 
-  const qm1Y = dividerY + 28
-  const q1Top = qm1Y + 26
-  const q1Region: Rect = { x: gutter, y: q1Top, width: quoteTextWidth, height: stageHeight * 0.45 }
+  const qm1Y = dividerY + Math.round(16 * sp)
+  const q1Top = qm1Y + Math.round(20 * sp)
+  const q1Region: Rect = { x: gutter, y: q1Top, width: textWidth, height: stageHeight * 0.5 }
   const q1Result = layoutColumn(preparedQ1, { segmentIndex: 0, graphemeIndex: 0 }, q1Region, QUOTE_LINE_HEIGHT, obstacles, qHPad, qVPad)
   quote1LineEls = syncPool(quote1LineEls, q1Result.lines.length)
   applyLines(quote1LineEls, q1Result.lines, QUOTE_FONT, QUOTE_LINE_HEIGHT, 'var(--ink)')
 
-  const qm2Y = q1Result.bottom + 24
-  const q2Top = qm2Y + 26
-  const q2Height = Math.max(0, stageHeight - q2Top - 16)
-  const q2Region: Rect = { x: gutter, y: q2Top, width: quoteTextWidth, height: q2Height }
+  const qm2Y = q1Result.bottom + Math.round(16 * sp)
+  const q2Top = qm2Y + Math.round(20 * sp)
+  const q2Height = Math.max(0, stageHeight - q2Top - 8)
+  const q2Region: Rect = { x: gutter, y: q2Top, width: textWidth, height: q2Height }
   const q2Result = layoutColumn(preparedQ2, { segmentIndex: 0, graphemeIndex: 0 }, q2Region, QUOTE_LINE_HEIGHT, obstacles, qHPad, qVPad)
   quote2LineEls = syncPool(quote2LineEls, q2Result.lines.length)
   applyLines(quote2LineEls, q2Result.lines, QUOTE_FONT, QUOTE_LINE_HEIGHT, 'var(--ink)')
