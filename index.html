@@ -3,19 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bouncing Zuck — Pretext Demo</title>
+    <title>The Privacy Engineering Gap</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Hedvig+Letters+Sans:opsz@12..24&display=swap" rel="stylesheet" />
-    <style>
-      @font-face {
-        font-family: 'Zodiak';
-        src: url('./assets/Zodiak-Variable.woff') format('woff');
-        font-weight: 100 900;
-        font-style: normal;
-        font-display: swap;
-      }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@600&family=Hedvig+Letters+Serif:opsz@12..24&display=swap" rel="stylesheet" />
     <style>
       * {
         box-sizing: border-box;
@@ -23,24 +14,24 @@
 
       :root {
         --bg: #f9f0f6;
-        --ink: #0c1425;
-        --ink-muted: #42506c;
+        --ink: #1b1d22;
+        --ink-muted: #606776;
+        --ink-secondary: #363a45;
         --accent: #e8663d;
-        --cyan: #a6ffff;
       }
 
       html,
       body {
         margin: 0;
         height: 100%;
-        background: #f0f0f0;
+        background: #e8e5e0;
         color: var(--ink);
         overscroll-behavior: none;
         overflow: hidden;
       }
 
       body {
-        font-family: "Hedvig Letters Sans", sans-serif;
+        font-family: "Geist", sans-serif;
         cursor: default;
         touch-action: none;
       }
@@ -49,12 +40,13 @@
         display: flex;
         flex-direction: column;
         height: 100dvh;
-        max-width: 619px;
+        max-width: 595px;
+        width: 100%;
         margin: 0 auto;
         overflow: hidden;
         isolation: isolate;
         background: white;
-        box-shadow: 0 0 40px rgba(12, 20, 37, 0.08);
+        box-shadow: 0 0 40px rgba(12, 20, 37, 0.1);
         position: relative;
       }
 
@@ -66,7 +58,7 @@
         background: white;
       }
 
-      /* White background covers top portion, dynamically sized */
+      /* White background covers top portion */
       .bg-top {
         position: absolute;
         left: 0;
@@ -90,9 +82,8 @@
       .divider-line {
         position: absolute;
         left: 0;
-        width: 100%;
+        right: 0;
         height: 8px;
-        display: block;
         z-index: 1;
       }
 
@@ -103,7 +94,6 @@
         user-select: none;
         pointer-events: auto;
         cursor: grab;
-        filter: drop-shadow(0 8px 24px rgba(12, 20, 37, 0.12));
       }
 
       .zuck-container.dragging {
@@ -115,6 +105,7 @@
         height: 100%;
         display: block;
         object-fit: contain;
+        filter: none;
       }
 
       /* --- Text lines --- */
@@ -128,33 +119,18 @@
 
       .quote-mark {
         position: absolute;
-        color: var(--accent);
-        font-family: Georgia, "Times New Roman", serif;
-        font-weight: 700;
+        width: 22px;
+        height: 16px;
+        display: block;
         z-index: 1;
         user-select: none;
         pointer-events: none;
-        line-height: 1;
       }
 
-      .footer {
-        height: 50px;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 clamp(16px, 5vw, 48px);
-        font: 400 9px/14px "Hedvig Letters Sans", sans-serif;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: #8f95a3;
-        z-index: 1;
-        background: white;
-      }
-
-      .footer-center {
-        color: #8192b2;
-        text-align: center;
+      .quote-mark img {
+        width: 22px;
+        height: 16px;
+        display: block;
       }
     </style>
   </head>
@@ -163,12 +139,7 @@
       <div id="stage" class="stage">
         <div id="bg-top" class="bg-top"></div>
         <div id="bg-bottom" class="bg-bottom"></div>
-        <img id="divider-line" class="divider-line" src="./assets/divider.svg" alt="" />
-      </div>
-      <div class="footer">
-        <span>privado.ai</span>
-        <span class="footer-center">Move Fast &amp; Don't Break Things</span>
-        <span>08</span>
+        <div id="divider-line" class="divider-line"></div>
       </div>
     </main>
 
