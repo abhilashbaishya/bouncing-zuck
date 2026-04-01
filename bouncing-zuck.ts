@@ -23,6 +23,8 @@ const QUOTE_2_FULL = `Twitter doesn't understand how much data it collects, why 
 const ZUCK_W = _compact ? 48 : Math.round(95 * 0.7)  // 48 on mobile, 67 on desktop
 const ZUCK_H = _compact ? 71 : Math.round(142 * 0.7) // 71 on mobile, 99 on desktop
 const ZUCK_SPEED = 1.8
+const SPEED_ACCEL = 1.05   // +5% per bounce
+const MAX_SPEED = 10
 
 type PositionedLine = { x: number; y: number; text: string }
 type Rect = { x: number; y: number; width: number; height: number }
@@ -30,6 +32,7 @@ type Interval = { left: number; right: number }
 
 // --- Bounce state ---
 const bounce = { x: 300, y: 100, vx: ZUCK_SPEED, vy: ZUCK_SPEED * 0.75, w: ZUCK_W, h: ZUCK_H }
+let bounceCount = 0
 
 // --- DOM ---
 const stage = document.getElementById('stage') as HTMLDivElement
@@ -100,6 +103,7 @@ window.addEventListener('mouseup', () => {
   if (!isDragging) return
   isDragging = false
   zuckContainer.classList.remove('dragging')
+  bounceCount = 0
   bounce.vx = ZUCK_SPEED * (Math.random() > 0.5 ? 1 : -1)
   bounce.vy = ZUCK_SPEED * 0.75 * (Math.random() > 0.5 ? 1 : -1)
 })
@@ -108,6 +112,7 @@ window.addEventListener('touchend', () => {
   if (!isDragging) return
   isDragging = false
   zuckContainer.classList.remove('dragging')
+  bounceCount = 0
   bounce.vx = ZUCK_SPEED * (Math.random() > 0.5 ? 1 : -1)
   bounce.vy = ZUCK_SPEED * 0.75 * (Math.random() > 0.5 ? 1 : -1)
 })
@@ -233,10 +238,11 @@ function updateBounce(pageWidth: number, pageHeight: number): void {
   if (isDragging) return
   bounce.x += bounce.vx
   bounce.y += bounce.vy
-  if (bounce.x <= 0) { bounce.x = 0; bounce.vx = Math.abs(bounce.vx) }
-  if (bounce.y <= 0) { bounce.y = 0; bounce.vy = Math.abs(bounce.vy) }
-  if (bounce.x + bounce.w >= pageWidth) { bounce.x = pageWidth - bounce.w; bounce.vx = -Math.abs(bounce.vx) }
-  if (bounce.y + bounce.h >= pageHeight) { bounce.y = pageHeight - bounce.h; bounce.vy = -Math.abs(bounce.vy) }
+  const accel = () => { bounceCount++; return Math.min(ZUCK_SPEED * Math.pow(SPEED_ACCEL, bounceCount), MAX_SPEED) }
+  if (bounce.x <= 0) { bounce.x = 0; const s = accel(); bounce.vx = s }
+  if (bounce.y <= 0) { bounce.y = 0; const s = accel(); bounce.vy = s }
+  if (bounce.x + bounce.w >= pageWidth) { bounce.x = pageWidth - bounce.w; const s = accel(); bounce.vx = -s }
+  if (bounce.y + bounce.h >= pageHeight) { bounce.y = pageHeight - bounce.h; const s = accel(); bounce.vy = -s }
 }
 
 // --- Render ---
