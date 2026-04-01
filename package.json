@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "start": "HOST=${HOST:-127.0.0.1}; PORT=3000; pids=$(lsof -tiTCP:$PORT -sTCP:LISTEN 2>/dev/null); if [ -n \"$pids\" ]; then kill $pids 2>/dev/null || true; sleep 1; fi; bun index.html --host=$HOST:$PORT"
+    "start": "PORT=3000; pids=$(lsof -tiTCP:$PORT -sTCP:LISTEN 2>/dev/null); if [ -n \"$pids\" ]; then kill $pids 2>/dev/null || true; sleep 1; fi; bun index.html --host=0.0.0.0:$PORT"
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.3"
