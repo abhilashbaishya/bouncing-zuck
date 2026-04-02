@@ -279,15 +279,12 @@ function render(): void {
 
   // --- Title: always pinned to gutter, Zuck floats over it via z-index ---
   const titleTopY = Math.max(16, Math.round(86 - TITLE_LINE_HEIGHT))
-  // On mobile "Privacy & Engineering" is too wide for one line — split into 3
-  const titleTextLines = _compact
-    ? ['The gap between', 'Privacy &', 'Engineering']
-    : [TITLE_LINE_1, TITLE_LINE_2]
-  const titleLines: PositionedLine[] = titleTextLines.map((text, i) => ({
-    x: gutter, y: titleTopY + TITLE_LINE_HEIGHT * i, text,
-  }))
-  const titleBottom = titleTopY + TITLE_LINE_HEIGHT * titleTextLines.length
-  titleLineEls = syncPool(titleLineEls, titleTextLines.length)
+  const titleLines: PositionedLine[] = [
+    { x: gutter, y: titleTopY, text: TITLE_LINE_1 },
+    { x: gutter, y: titleTopY + TITLE_LINE_HEIGHT, text: TITLE_LINE_2 },
+  ]
+  const titleBottom = titleTopY + TITLE_LINE_HEIGHT * 2
+  titleLineEls = syncPool(titleLineEls, 2)
   applyLines(titleLineEls, titleLines, TITLE_FONT, TITLE_LINE_HEIGHT, '#1b1d22')
   for (const el of titleLineEls) {
     el.style.letterSpacing = TITLE_TRACKING
