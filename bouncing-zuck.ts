@@ -158,18 +158,6 @@ function getBlockedInterval(obs: Rect, bandTop: number, bandBottom: number, hPad
   return { left: obs.x - hPad, right: obs.x + obs.width + hPad }
 }
 
-// Find the best x start for a title line given obstacles — always renders full text
-function getTitleLineX(lineTop: number, lineHeight: number, obstacles: Rect[], gutter: number, hPad: number, vPad: number): number {
-  const blocked: Interval[] = []
-  for (const obs of obstacles) {
-    const iv = getBlockedInterval(obs, lineTop, lineTop + lineHeight, hPad, vPad)
-    if (iv !== null) blocked.push(iv)
-  }
-  const slots = carveSlots({ left: gutter, right: gutter + 10000 }, blocked)
-  if (slots.length === 0) return gutter
-  const best = slots.reduce((a, b) => (b.right - b.left > a.right - a.left ? b : a))
-  return Math.round(best.left)
-}
 
 function layoutColumn(
   prepared: PreparedTextWithSegments,
@@ -289,13 +277,11 @@ function render(): void {
   const hPad = 6
   const vPad = 4
 
-  // --- Title: exactly 2 hardcoded lines, x shifts around Zuck, text never truncates ---
+  // --- Title: always pinned to gutter, Zuck floats over it via z-index ---
   const titleTopY = Math.max(16, Math.round(86 - TITLE_LINE_HEIGHT))
-  const line1X = getTitleLineX(titleTopY, TITLE_LINE_HEIGHT, obstacles, gutter, hPad, vPad)
-  const line2X = getTitleLineX(titleTopY + TITLE_LINE_HEIGHT, TITLE_LINE_HEIGHT, obstacles, gutter, hPad, vPad)
   const titleLines: PositionedLine[] = [
-    { x: line1X, y: titleTopY, text: TITLE_LINE_1 },
-    { x: line2X, y: titleTopY + TITLE_LINE_HEIGHT, text: TITLE_LINE_2 },
+    { x: gutter, y: titleTopY, text: TITLE_LINE_1 },
+    { x: gutter, y: titleTopY + TITLE_LINE_HEIGHT, text: TITLE_LINE_2 },
   ]
   const titleBottom = titleTopY + TITLE_LINE_HEIGHT * 2
   titleLineEls = syncPool(titleLineEls, 2)
